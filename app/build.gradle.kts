@@ -6,6 +6,9 @@ android {
     namespace = "com.example.decena"
     compileSdk {
         version = release(36)
+        buildFeatures {
+            viewBinding = true
+        }
     }
 
     defaultConfig {
