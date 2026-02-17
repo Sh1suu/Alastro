@@ -12,8 +12,43 @@
         <item name="cornerSize">50%</item>
     </style>
 
-    <style name="CalTheme" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/accent_red</item>
-        <item name="android:textColorPrimary">@color/text_dark</item>
+    <style name="CalTheme" parent="Theme.AppCompat.Light">
+        <item name="android:textColorPrimary">@color/accent_red</item>
+
+        <item name="colorAccent">@color/selection_green</item>
+        <item name="android:colorAccent">@color/selection_green</item>
+
+        <item name="android:weekDayTextAppearance">@style/CalWeekText</item>
+        <item name="android:dateTextAppearance">@style/CalDateText</item>
     </style>
+
+    <style name="CalDayText">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@color/text_dark</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="CalDateText" parent="TextAppearance.AppCompat.Small">
+        <item name="android:textColor">@color/text_dark</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="CalDateText_Faded">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">#D0D0D0</item> <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="CalWeekText" parent="TextAppearance.AppCompat.Small">
+        <item name="android:textColor">@color/text_dark</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
 </resources>

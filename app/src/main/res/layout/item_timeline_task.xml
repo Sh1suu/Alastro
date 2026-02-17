@@ -26,7 +26,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Mon"
-                android:textSize="10sp"
+                android:textSize="12sp"
                 android:textColor="#FFFFFF"/>
 
             <TextView
@@ -69,7 +69,8 @@
                 android:layout_height="match_parent"
                 android:orientation="vertical"
                 android:gravity="center_vertical"
-                android:paddingStart="12dp">
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp">
 
                 <TextView
                     android:layout_width="wrap_content"

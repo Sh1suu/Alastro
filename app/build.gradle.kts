@@ -4,12 +4,14 @@ plugins {
 
 android {
     namespace = "com.example.decena"
-    compileSdk {
-        version = release(36)
-        buildFeatures {
-            viewBinding = true
-        }
+    compileSdk = 34 // (Your number might be different, that's okay)
+
+    // PASTE THIS PART BELOW:
+    buildFeatures {
+        viewBinding = true
     }
+
+
 
     defaultConfig {
         applicationId = "com.example.decena"

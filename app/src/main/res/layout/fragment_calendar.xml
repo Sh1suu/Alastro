@@ -20,12 +20,13 @@
             android:layout_weight="1"
             android:text="Calendar"
             android:textSize="22sp"
+            android:textStyle="bold"
             android:textColor="@color/text_dark"/>
 
         <ImageView
             android:layout_width="28dp"
             android:layout_height="28dp"
-            android:src="@android:drawable/ic_menu_my_calendar"
+            android:src="@drawable/ic_profile_placeholder"
             app:tint="@color/accent_red"/>
     </LinearLayout>
 
@@ -36,36 +37,16 @@
         android:background="#D0D0D0"
         app:layout_constraintTop_toBottomOf="@id/calHeader"/>
 
-    <ScrollView
+    <CalendarView
+        android:id="@+id/calendarView"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:paddingBottom="100dp"
-        android:clipToPadding="false"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:theme="@style/CalTheme"
+        android:dateTextAppearance="@style/CalDateText"
+        android:weekDayTextAppearance="@style/CalWeekText"
         app:layout_constraintTop_toBottomOf="@id/calDivider"
-        app:layout_constraintBottom_toBottomOf="parent">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="24dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="January"
-                android:textColor="@color/accent_red"
-                android:textStyle="bold"
-                android:textSize="20sp"
-                android:layout_gravity="center"/>
-
-            <CalendarView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:theme="@style/CalTheme"/>
-
-        </LinearLayout>
-    </ScrollView>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
