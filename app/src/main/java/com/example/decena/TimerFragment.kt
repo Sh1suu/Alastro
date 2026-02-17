@@ -123,33 +123,32 @@ class TimerFragment : Fragment() {
     // --- POPUP MENUS & DIALOGS ---
 
     private fun showTimePresetMenu(view: View) {
-        val popup = PopupMenu(context, view)
-        // Add options: Title
-        popup.menu.add("5 minutes")
-        popup.menu.add("10 minutes")
-        popup.menu.add("25 minutes (Pomodoro)")
-        popup.menu.add("60 minutes")
+        val input = EditText(context)
+        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+        input.setPadding(50, 50, 50, 50)
+        input.hint = "Enter minutes (e.g., 25)"
 
-        popup.setOnMenuItemClickListener { item ->
-            tvPreset.text = item.title
+        AlertDialog.Builder(context)
+            .setTitle("Set Custom Timer")
+            .setMessage("How many minutes would you like to set?")
+            .setView(input)
+            .setPositiveButton("Set") { _, _ ->
+                val inputText = input.text.toString()
+                if (inputText.isNotEmpty()) {
+                    val minutes = inputText.toInt()
 
-            // Set the time based on selection
-            val minutes = when (item.title) {
-                "5 minutes" -> 5
-                "10 minutes" -> 10
-                "25 minutes (Pomodoro)" -> 25
-                "60 minutes" -> 60
-                else -> 5
+                    // Update the text display
+                    tvPreset.text = "$minutes minutes"
+
+                    // Stop any running timer and update the countdown
+                    pauseTimer()
+                    initialTimeInMillis = (minutes * 60 * 1000).toLong()
+                    timeLeftInMillis = initialTimeInMillis
+                    updateCountDownText()
+                }
             }
-
-            // Reset timer with new time
-            pauseTimer()
-            initialTimeInMillis = (minutes * 60 * 1000).toLong()
-            timeLeftInMillis = initialTimeInMillis
-            updateCountDownText()
-            true
-        }
-        popup.show()
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun showNumberInputDialog(title: String, targetTextView: TextView) {
