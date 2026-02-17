@@ -33,7 +33,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         // These don't have fragments yet, but we can animate the buttons!
-        binding.btnNavTasks.setOnClickListener { updateNavState(3) }
+        // 3. Tasks Button (Checkbox Icon)
+        binding.btnNavTasks.setOnClickListener {
+            loadFragment(TasksFragment()) // <--- Load the new fragment!
+            updateNavState(3)
+        }
         binding.btnNavTimer.setOnClickListener { updateNavState(4) }
     }
 
