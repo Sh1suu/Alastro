@@ -14,6 +14,7 @@ import java.util.Calendar
 
 class TasksFragment : Fragment() {
 
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -29,7 +30,12 @@ class TasksFragment : Fragment() {
         btnAddTask.setOnClickListener {
             showTaskDialog(inflater, tasksContainer, null) // null means "Create New"
         }
-
+        // Find the profile icon by its ID
+        val profileIcon = view.findViewById<ImageView>(R.id.imgProfile)
+        profileIcon.setOnClickListener {
+            // Use the cleaner helper function from MainActivity
+            (activity as? MainActivity)?.navigateToProfile()
+        }
         return view
     }
 

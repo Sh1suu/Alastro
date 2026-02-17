@@ -34,10 +34,13 @@
         <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
 
         <ImageView
+            android:id="@+id/imgProfile"
             android:layout_width="28dp"
             android:layout_height="28dp"
             android:src="@drawable/ic_profile_placeholder"
-            app:tint="@color/accent_red"/>
+            app:tint="@color/accent_red"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
     </LinearLayout>
 
     <View

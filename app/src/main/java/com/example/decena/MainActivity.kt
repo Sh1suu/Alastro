@@ -39,6 +39,12 @@ class MainActivity : AppCompatActivity() {
             updateNavState(3)
         }
         binding.btnNavTimer.setOnClickListener { updateNavState(4) }
+
+        // 4. Timer Button
+        binding.btnNavTimer.setOnClickListener {
+            loadFragment(TimerFragment()) // <--- Load the new Timer page
+            updateNavState(4)
+        }
     }
 
     private fun updateNavState(selected: Int) {
@@ -83,4 +89,11 @@ class MainActivity : AppCompatActivity() {
         transaction.replace(R.id.fragmentContainer, fragment)
         transaction.commit()
     }
+
+    fun navigateToProfile() {
+        loadFragment(ProfileFragment())
+        // This turns off all highlights on the bottom bar
+        updateNavState(0)
+    }
 }
+
