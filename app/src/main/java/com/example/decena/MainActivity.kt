@@ -95,6 +95,10 @@ class MainActivity : AppCompatActivity() {
         // This turns off all highlights on the bottom bar
         updateNavState(0)
     }
+    fun navigateToTasks() {
+        loadFragment(TasksFragment())
+        updateNavState(3) // 3 = Tasks (based on your updateNavState function)
+    }
 
     fun navigateToCalendar() {
         // 1. Load the Calendar Fragment
