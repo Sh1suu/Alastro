@@ -14,13 +14,17 @@
         app:layout_constraintTop_toTopOf="parent"/>
 
     <com.google.android.material.card.MaterialCardView
-        android:layout_width="0dp"
+        android:id="@+id/bottomNavContainer"
+        android:layout_width="match_parent"
         android:layout_height="70dp"
         android:layout_marginHorizontal="24dp"
         android:layout_marginBottom="30dp"
         app:cardElevation="10dp"
-        app:cardCornerRadius="20dp"
-        app:cardBackgroundColor="@android:color/transparent"
+        app:cardCornerRadius="35dp"
+        app:cardBackgroundColor="@color/accent_red"
+        app:cardPreventCornerOverlap="false"
+        app:strokeWidth="0dp"
+        app:strokeColor="@android:color/transparent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -28,7 +32,6 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/bg_nav_pill"
             android:gravity="center"
             android:orientation="horizontal"
             android:weightSum="4">
@@ -40,6 +43,7 @@
                 android:layout_weight="1"
                 android:clickable="true"
                 android:focusable="true">
+
                 <View
                     android:id="@+id/bgHomeActive"
                     android:layout_width="40dp"
@@ -47,12 +51,13 @@
                     android:layout_gravity="center"
                     android:background="@drawable/bg_white_rounded_small"
                     android:visibility="visible"/>
+
                 <ImageView
                     android:id="@+id/iconHome"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:layout_gravity="center"
-                    android:src="@android:drawable/ic_menu_rotate"
+                    android:src="@drawable/ic_nav_home"
                     app:tint="@color/accent_red"/>
             </FrameLayout>
 
@@ -75,7 +80,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:layout_gravity="center"
-                    android:src="@android:drawable/ic_menu_my_calendar"
+                    android:src="@drawable/ic_nav_calendar"
                     app:tint="#FFFFFF"/>
             </FrameLayout>
 
@@ -98,7 +103,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:layout_gravity="center"
-                    android:src="@android:drawable/checkbox_on_background"
+                    android:src="@drawable/ic_nav_tasks"
                     app:tint="#FFFFFF"/>
             </FrameLayout>
 
@@ -121,7 +126,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:layout_gravity="center"
-                    android:src="@android:drawable/ic_menu_recent_history"
+                    android:src="@drawable/ic_nav_timer"
                     app:tint="#FFFFFF"/>
             </FrameLayout>
 

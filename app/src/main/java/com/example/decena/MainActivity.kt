@@ -95,5 +95,15 @@ class MainActivity : AppCompatActivity() {
         // This turns off all highlights on the bottom bar
         updateNavState(0)
     }
+
+    fun navigateToCalendar() {
+        // 1. Load the Calendar Fragment
+        loadFragment(CalendarFragment())
+
+        // 2. Update the Bottom Navigation Bar (Highlight the 2nd icon)
+        // 1=Home, 2=Calendar, 3=Tasks, 4=Timer
+        updateNavState(2)
+    }
+
 }
 
