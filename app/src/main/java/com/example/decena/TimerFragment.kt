@@ -13,9 +13,10 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import java.util.Locale
+import android.media.MediaPlayer
 
 class TimerFragment : Fragment() {
-
+    private var mediaPlayer: MediaPlayer? = null
     private lateinit var tvTimer: TextView
     private lateinit var tvPreset: TextView
     private lateinit var tvCycles: TextView
@@ -94,11 +95,12 @@ class TimerFragment : Fragment() {
             }
 
             override fun onFinish() {
-                isRunning = false
-                iconStart.setImageResource(android.R.drawable.ic_media_play)
-                timeLeftInMillis = 0
-                updateCountDownText()
-                Toast.makeText(context, "Timer Finished!", Toast.LENGTH_SHORT).show()
+                // Play the sound
+                mediaPlayer = MediaPlayer.create(context, R.raw.alarm_sound)
+                mediaPlayer?.start()
+
+                // Optional: Show a Toast or notification
+                Toast.makeText(context, "Time is up! Take a break.", Toast.LENGTH_LONG).show()
             }
         }.start()
 
@@ -168,5 +170,10 @@ class TimerFragment : Fragment() {
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaPlayer?.release()
+        mediaPlayer = null
     }
 }
