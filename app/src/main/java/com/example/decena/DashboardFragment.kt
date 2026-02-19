@@ -21,6 +21,9 @@ class DashboardFragment : Fragment() {
 
     private lateinit var btnMonthSelector: TextView
     private lateinit var imgProfile: ImageView
+
+    private lateinit var tvGreeting: TextView
+
     private lateinit var tasksContainer: LinearLayout
     private lateinit var scrollView: ScrollView
     private lateinit var recyclerView: RecyclerView
@@ -43,10 +46,13 @@ class DashboardFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         try {
+
             initializeViews(view)
             setupRecyclerView()
             setupViewModels()
             setupClickListeners(view)
+            updateGreetingAndQuotes() // Now this will find "Francis"!
+
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
@@ -56,6 +62,9 @@ class DashboardFragment : Fragment() {
     private fun initializeViews(view: View) {
         btnMonthSelector = view.findViewById(R.id.btnMonthSelector)
         imgProfile = view.findViewById(R.id.imgProfile)
+
+        tvGreeting = view.findViewById(R.id.tvGreeting)
+
 
         // Find ScrollView
         scrollView = view.findViewById(R.id.scrollView)
@@ -137,5 +146,36 @@ class DashboardFragment : Fragment() {
     private fun updateMonthDisplay() {
         val month = monthFormatter.format(selectedDate.time)
         sharedViewModel.setMonth(month)
+    }
+
+    private fun updateGreetingAndQuotes() {
+        // 1. Get the "SharedPreferences" (The app's mini storage)
+        // We use a file named "UserPrefs"
+        val sharedPref = requireActivity().getSharedPreferences("UserPrefs", android.content.Context.MODE_PRIVATE)
+
+        // 2. Try to find a name saved under the key "saved_name"
+        // If no name is found (like the first time you run it), use "Student" as default
+        val userName = sharedPref.getString("saved_name", "Student")
+
+        // 3. Get the current time
+        val calendar = Calendar.getInstance()
+        val hour = calendar.get(Calendar.HOUR_OF_DAY)
+
+        // 4. Create the greeting logic
+        val greetingText = when (hour) {
+            in 0..11 -> "Good Morning, $userName! ☀️"
+            in 12..17 -> "Good Afternoon, $userName! 🌤️"
+            else -> "Good Evening, $userName! 🌙"
+        }
+
+        // 5. Set the text
+        tvGreeting.text = greetingText
+
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // This forces the greeting to update every time you open this tab!
+        updateGreetingAndQuotes()
     }
 }

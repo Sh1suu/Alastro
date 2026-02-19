@@ -110,15 +110,9 @@ class ProfileFragment : Fragment() {
 
     private fun updateFieldText(fieldView: View, text: String) {
         try {
-            // Since your item_profile.xml has a TextView without ID,
-            // we can try to cast the view itself if it's a TextView
-            if (fieldView is TextView) {
-                fieldView.text = text
-            } else {
-                // If it's a container (like CardView), try to find a TextView inside
-                val textView = fieldView.findViewById<TextView>(android.R.id.text1)
-                textView?.text = text
-            }
+            // We look for the specific ID we just created in the XML
+            val textView = fieldView.findViewById<TextView>(R.id.tvFieldLabel)
+            textView?.text = text
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -274,6 +268,14 @@ class ProfileFragment : Fragment() {
 
         val updatedProfile = when (fieldName) {
             "First Name" -> {
+                // --- START OF NEW CODE ---
+                // This saves the name so the Dashboard can see it!
+                val sharedPref = requireActivity().getSharedPreferences("UserPrefs", android.content.Context.MODE_PRIVATE)
+                val editor = sharedPref.edit()
+                editor.putString("saved_name", newValue)
+                editor.apply()
+                // --- END OF NEW CODE ---
+
                 currentFirstName = newValue
                 currentProfile.copy(
                     firstName = newValue,
@@ -299,6 +301,6 @@ class ProfileFragment : Fragment() {
         }
 
         viewModel.updateProfile(updatedProfile)
-        Toast.makeText(context, "$fieldName updated", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(context, "$fieldName updated", Toast.LENGTH_SHORT).show()
     }
 }
