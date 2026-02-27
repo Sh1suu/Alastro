@@ -5,11 +5,13 @@ import android.graphics.Color
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
 import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.NumberPicker
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -164,26 +166,106 @@ class TimerFragment : Fragment() {
         mediaPlayer?.start()
     }
 
+    // --- MAIN TIMER PRESET (Minutes & Seconds Wheels) ---
     private fun showTimePresetMenu() {
-        val input = EditText(context)
-        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER
-        AlertDialog.Builder(context).setTitle("Set Minutes").setView(input)
+        val context = requireContext()
+
+        val layout = LinearLayout(context)
+        layout.orientation = LinearLayout.HORIZONTAL
+        layout.gravity = Gravity.CENTER
+        layout.setPadding(50, 50, 50, 50)
+
+        val minPicker = NumberPicker(context).apply {
+            minValue = 0
+            maxValue = 99
+            value = (initialTimeInMillis / 60000).toInt()
+        }
+
+        val secPicker = NumberPicker(context).apply {
+            minValue = 0
+            maxValue = 59
+            value = ((initialTimeInMillis % 60000) / 1000).toInt()
+        }
+
+        val minLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            addView(TextView(context).apply { text = "Min" })
+            addView(minPicker)
+            setPadding(0, 0, 30, 0)
+        }
+
+        val secLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            addView(TextView(context).apply { text = "Sec" })
+            addView(secPicker)
+            setPadding(30, 0, 0, 0)
+        }
+
+        layout.addView(minLayout)
+        layout.addView(secLayout)
+
+        AlertDialog.Builder(context)
+            .setTitle("Set Work Timer")
+            .setView(layout)
             .setPositiveButton("Set") { _, _ ->
-                val mins = input.text.toString().toIntOrNull() ?: 5
-                tvPreset.text = "$mins minutes"
-                initialTimeInMillis = (mins * 60 * 1000).toLong()
-                resetTimer()
-            }.show()
+                val mins = minPicker.value
+                val secs = secPicker.value
+                val totalMillis = (mins * 60 * 1000L) + (secs * 1000L)
+
+                if (totalMillis > 0) {
+                    initialTimeInMillis = totalMillis
+                    tvPreset.text = String.format(Locale.getDefault(), "%02d:%02d", mins, secs)
+                    resetTimer()
+                } else {
+                    Toast.makeText(context, "Timer must be greater than 0", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
+    // --- CYCLES & INTERVALS PRESET (Scrollable Wheel) ---
     private fun showNumberInputDialog(title: String, target: TextView) {
-        val input = EditText(context)
-        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER
-        AlertDialog.Builder(context).setTitle("Set $title").setView(input)
+        val context = requireContext()
+
+        val picker = NumberPicker(context).apply {
+            if (title == "Cycles") {
+                minValue = 1
+                maxValue = 20
+                // Pulls current number from text, defaults to 4
+                value = target.text.toString().toIntOrNull() ?: 4
+            } else {
+                // Intervals (Break time in minutes)
+                minValue = 1
+                maxValue = 60
+                // Pulls current number from text, defaults to 5
+                value = target.text.toString().toIntOrNull() ?: 5
+            }
+        }
+
+        val layout = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(50, 50, 50, 50)
+            addView(picker)
+        }
+
+        AlertDialog.Builder(context)
+            .setTitle("Set $title")
+            .setView(layout)
             .setPositiveButton("OK") { _, _ ->
-                target.text = input.text.toString()
-                if (title == "Cycles") totalCycles = input.text.toString().toIntOrNull() ?: 4
-            }.show()
+                val selectedValue = picker.value
+                target.text = selectedValue.toString()
+
+                // Update the logic variable specifically for Cycles
+                if (title == "Cycles") {
+                    totalCycles = selectedValue
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     override fun onDestroy() {

@@ -25,29 +25,27 @@ class CalendarFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // --- Existing Profile Logic ---
+        // Existing profile icon logic
         val profileIcon = view.findViewById<ImageView>(R.id.imgProfile)
         profileIcon.setOnClickListener {
             (activity as? MainActivity)?.navigateToProfile()
         }
 
-        // --- NEW: Shared ViewModel Logic ---
-        // 1. Get the Shared ViewModel
+        // Get SharedViewModel and TasksViewModel
         val sharedViewModel = ViewModelProvider(requireActivity())[SharedViewModel::class.java]
+        val tasksViewModel = ViewModelProvider(requireActivity())[TasksViewModel::class.java]
 
-        // 2. Find the CalendarView (Make sure your XML has this ID!)
         val calendarView = view.findViewById<CalendarView>(R.id.calendarView)
-
-        // 3. Listen for date changes
         calendarView?.setOnDateChangeListener { _, year, month, dayOfMonth ->
-            // Convert the month number (0-11) to a name (January, February...)
             val cal = Calendar.getInstance()
             cal.set(year, month, dayOfMonth)
 
+            // Update month name for dashboard header
             val monthName = SimpleDateFormat("MMMM", Locale.getDefault()).format(cal.time)
-
-            // Update the Shared ViewModel!
             sharedViewModel.setMonth(monthName)
+
+            // Update selected date so tasks refresh for this day
+            tasksViewModel.setSelectedDate(cal.timeInMillis)
         }
     }
 }

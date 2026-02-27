@@ -197,4 +197,31 @@ class TaskDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
             return tasks
         }
     }
+
+    fun updateTask(task: Task): Boolean {
+        synchronized(dbLock) {
+            val db = writableDatabase
+            db.beginTransaction()
+            return try {
+                val values = ContentValues().apply {
+                    put(COLUMN_TITLE, task.title)
+                    put(COLUMN_DESCRIPTION, task.description)
+                    put(COLUMN_DATE, task.date)
+                    put(COLUMN_TIME, task.time)
+                    put(COLUMN_PRIORITY, task.priority)
+                    put(COLUMN_CATEGORY, task.category)
+                    put(COLUMN_IS_COMPLETED, if (task.isCompleted) 1 else 0)
+                }
+                val result = db.update(TABLE_NAME, values, "$COLUMN_ID = ?", arrayOf(task.id.toString())) > 0
+                db.setTransactionSuccessful()
+                println("✅ Updated task ${task.id}")
+                result
+            } catch (e: Exception) {
+                e.printStackTrace()
+                false
+            } finally {
+                db.endTransaction()
+            }
+        }
+    }
 }
