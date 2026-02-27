@@ -17,11 +17,11 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 1. Load Home by default
+        // Load default fragment
         loadFragment(DashboardFragment())
-        updateNavState(1) // 1 = Home
+        updateNavState(1)
 
-        // 2. Click Listeners
+        // Click listeners
         binding.btnNavHome.setOnClickListener {
             loadFragment(DashboardFragment())
             updateNavState(1)
@@ -32,17 +32,15 @@ class MainActivity : AppCompatActivity() {
             updateNavState(2)
         }
 
-        // These don't have fragments yet, but we can animate the buttons!
-        // 3. Tasks Button (Checkbox Icon)
+        // Tasks Button
         binding.btnNavTasks.setOnClickListener {
-            loadFragment(TasksFragment()) // <--- Load the new fragment!
+            loadFragment(TasksFragment())
             updateNavState(3)
         }
-        binding.btnNavTimer.setOnClickListener { updateNavState(4) }
 
-        // 4. Timer Button
+        // Timer Button
         binding.btnNavTimer.setOnClickListener {
-            loadFragment(TimerFragment()) // <--- Load the new Timer page
+            loadFragment(TimerFragment())
             updateNavState(4)
         }
     }

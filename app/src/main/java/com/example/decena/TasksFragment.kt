@@ -1,15 +1,19 @@
 package com.example.decena
 
+import android.Manifest
 import android.app.AlertDialog
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
-import android.graphics.Paint
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -32,6 +36,15 @@ class TasksFragment : Fragment() {
     private var selectedDate: Calendar = Calendar.getInstance()
     private val dateFormatter = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
 
+    // Request Notification Permission for Android 13+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (!isGranted) {
+            Toast.makeText(context, "Task reminders disabled", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -42,11 +55,18 @@ class TasksFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Ask for notification permission immediately upon opening Tasks tab
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+
         try {
             initializeViews(view)
             setupRecyclerView()
             setupViewModel()
-            setupClickListeners(view)
+            setupClickListeners()
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
@@ -57,22 +77,7 @@ class TasksFragment : Fragment() {
         tasksContainer = view.findViewById(R.id.tasksContainer)
         btnAddTask = view.findViewById(R.id.btnAddTask)
         imgProfile = view.findViewById(R.id.imgProfile)
-
-        // Get the first child (Today text)
-        if (tasksContainer.childCount > 0) {
-            todayTextView = tasksContainer.getChildAt(0) as TextView
-        } else {
-            todayTextView = TextView(requireContext()).apply {
-                text = "Today"
-                textSize = 18f
-                setTextColor(resources.getColor(android.R.color.black, null))
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-            }
-            tasksContainer.addView(todayTextView)
-        }
+        todayTextView = view.findViewById(R.id.tvTodayHeader)
     }
 
     private fun setupRecyclerView() {
@@ -84,7 +89,6 @@ class TasksFragment : Fragment() {
             layoutManager = LinearLayoutManager(requireContext())
         }
 
-        // Clear all views and add back the Today text and RecyclerView
         tasksContainer.removeAllViews()
         tasksContainer.addView(todayTextView)
         tasksContainer.addView(recyclerView)
@@ -98,7 +102,7 @@ class TasksFragment : Fragment() {
                 showTaskDialog(task)
             },
             onTaskDeleteListener = { task ->
-                viewModel.deleteTask(task)
+                viewModel.deleteTask(task, requireContext()) // <-- Passing context to delete alarm
                 Snackbar.make(requireView(), "Task deleted", Snackbar.LENGTH_SHORT).show()
             }
         )
@@ -110,31 +114,23 @@ class TasksFragment : Fragment() {
         val factory = TasksViewModelFactory(databaseHelper)
         viewModel = ViewModelProvider(requireActivity(), factory).get(TasksViewModel::class.java)
 
-        // Observe tasks - this will trigger whenever tasks change
         viewModel.tasks.observe(viewLifecycleOwner) { tasks ->
-            Log.d("TasksFragment", "Received ${tasks.size} tasks")
             updateTasksList(tasks)
         }
 
-        // Observe selected date
         viewModel.selectedDate.observe(viewLifecycleOwner) { dateInMillis ->
             selectedDate.timeInMillis = dateInMillis
             updateDateDisplay()
-            Log.d("TasksFragment", "Date changed to: $dateInMillis")
         }
     }
 
-    private fun setupClickListeners(view: View) {
+    private fun setupClickListeners() {
         btnAddTask.setOnClickListener {
             showTaskDialog(null)
         }
 
         imgProfile.setOnClickListener {
-            try {
-                (activity as? MainActivity)?.navigateToProfile()
-            } catch (e: Exception) {
-                Toast.makeText(context, "Profile clicked", Toast.LENGTH_SHORT).show()
-            }
+            (activity as? MainActivity)?.navigateToProfile()
         }
 
         todayTextView.setOnClickListener {
@@ -143,7 +139,7 @@ class TasksFragment : Fragment() {
     }
 
     private fun showDatePicker() {
-        val datePickerDialog = DatePickerDialog(
+        DatePickerDialog(
             requireContext(),
             { _, year, month, dayOfMonth ->
                 selectedDate.set(year, month, dayOfMonth)
@@ -152,8 +148,7 @@ class TasksFragment : Fragment() {
             selectedDate.get(Calendar.YEAR),
             selectedDate.get(Calendar.MONTH),
             selectedDate.get(Calendar.DAY_OF_MONTH)
-        )
-        datePickerDialog.show()
+        ).show()
     }
 
     private fun updateDateDisplay() {
@@ -167,23 +162,13 @@ class TasksFragment : Fragment() {
     }
 
     private fun updateTasksList(tasks: List<Task>) {
-        // Update the "Today" text with task count
         val baseText = if (todayTextView.text.contains("(")) {
             todayTextView.text.toString().substringBefore(" (")
         } else {
             todayTextView.text.toString()
         }
         todayTextView.text = "$baseText (${tasks.size} tasks)"
-
-        // Update adapter
         taskAdapter.updateTasks(tasks)
-
-        // Force RecyclerView to refresh
-        recyclerView.post {
-            taskAdapter.notifyDataSetChanged()
-        }
-
-        Log.d("TasksFragment", "UI updated with ${tasks.size} tasks")
     }
 
     private fun showTaskDialog(existingTask: Task?) {
@@ -193,46 +178,61 @@ class TasksFragment : Fragment() {
         val btnDate = dialogView.findViewById<Button>(R.id.btnPickDate)
         val btnTime = dialogView.findViewById<Button>(R.id.btnPickTime)
 
-        var selectedDateInMillis = selectedDate.timeInMillis
+        // Using a central calendar to build the absolute exact millisecond for the Alarm
+        val alarmCalendar = Calendar.getInstance()
         var selectedDateStr = ""
         var selectedTimeStr = ""
 
         if (existingTask != null) {
             etTaskName.setText(existingTask.title)
-
-            val calendar = Calendar.getInstance().apply {
-                timeInMillis = existingTask.date
-            }
-            selectedDateInMillis = existingTask.date
-            selectedDateStr = dateFormatter.format(calendar.time)
+            alarmCalendar.timeInMillis = existingTask.date
+            selectedDateStr = dateFormatter.format(alarmCalendar.time)
             btnDate.text = selectedDateStr
             selectedTimeStr = existingTask.time
             btnTime.text = selectedTimeStr
         } else {
-            // For new tasks, set default date to selected date
-            selectedDateStr = dateFormatter.format(Date(selectedDateInMillis))
+            // Default to the currently viewed day in the Tasks tab, but current time of day
+            alarmCalendar.set(Calendar.YEAR, selectedDate.get(Calendar.YEAR))
+            alarmCalendar.set(Calendar.MONTH, selectedDate.get(Calendar.MONTH))
+            alarmCalendar.set(Calendar.DAY_OF_MONTH, selectedDate.get(Calendar.DAY_OF_MONTH))
+            selectedDateStr = dateFormatter.format(alarmCalendar.time)
             btnDate.text = selectedDateStr
         }
 
         btnDate.setOnClickListener {
-            val calendar = Calendar.getInstance()
-            DatePickerDialog(requireContext(), { _, year, month, day ->
-                calendar.set(year, month, day)
-                selectedDateInMillis = calendar.timeInMillis
-                selectedDateStr = dateFormatter.format(calendar.time)
-                btnDate.text = selectedDateStr
-            }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
+            DatePickerDialog(
+                requireContext(),
+                { _, year, month, day ->
+                    alarmCalendar.set(Calendar.YEAR, year)
+                    alarmCalendar.set(Calendar.MONTH, month)
+                    alarmCalendar.set(Calendar.DAY_OF_MONTH, day)
+                    selectedDateStr = dateFormatter.format(alarmCalendar.time)
+                    btnDate.text = selectedDateStr
+                },
+                alarmCalendar.get(Calendar.YEAR),
+                alarmCalendar.get(Calendar.MONTH),
+                alarmCalendar.get(Calendar.DAY_OF_MONTH)
+            ).show()
         }
 
         btnTime.setOnClickListener {
-            val calendar = Calendar.getInstance()
-            TimePickerDialog(requireContext(), { _, hour, minute ->
-                val amPm = if (hour >= 12) "PM" else "AM"
-                val hour12 = if (hour > 12) hour - 12 else if (hour == 0) 12 else hour
-                val minStr = String.format("%02d", minute)
-                selectedTimeStr = "$hour12:$minStr $amPm"
-                btnTime.text = selectedTimeStr
-            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false).show()
+            TimePickerDialog(
+                requireContext(),
+                { _, hour, minute ->
+                    alarmCalendar.set(Calendar.HOUR_OF_DAY, hour)
+                    alarmCalendar.set(Calendar.MINUTE, minute)
+                    alarmCalendar.set(Calendar.SECOND, 0)
+
+                    val amPm = if (hour >= 12) "PM" else "AM"
+                    val hour12 = if (hour > 12) hour - 12 else if (hour == 0) 12 else hour
+                    val minStr = String.format(Locale.getDefault(), "%02d", minute)
+                    selectedTimeStr = "$hour12:$minStr $amPm"
+                    btnTime.text = selectedTimeStr
+                },
+                alarmCalendar.get(Calendar.HOUR_OF_DAY),
+                alarmCalendar.get(Calendar.MINUTE),
+                false
+            ).show()
         }
 
         AlertDialog.Builder(requireContext())
@@ -246,38 +246,35 @@ class TasksFragment : Fragment() {
                     return@setPositiveButton
                 }
 
-                if (selectedDateStr.isEmpty()) {
-                    selectedDateStr = dateFormatter.format(Date(selectedDateInMillis))
+                if (selectedTimeStr.isEmpty()) {
+                    selectedTimeStr = "12:00 PM" // Default fallback
+                    alarmCalendar.set(Calendar.HOUR_OF_DAY, 12)
+                    alarmCalendar.set(Calendar.MINUTE, 0)
+                    alarmCalendar.set(Calendar.SECOND, 0)
                 }
 
-                if (selectedTimeStr.isEmpty()) {
-                    selectedTimeStr = "12:00 PM"
-                }
+                // The exact precise time marker combining Date and Time!
+                val exactTimeInMillis = alarmCalendar.timeInMillis
 
                 if (existingTask == null) {
-                    // CREATE NEW TASK
                     val newTask = Task(
                         title = taskText,
                         description = "",
-                        date = selectedDateInMillis,
+                        date = exactTimeInMillis,
                         time = selectedTimeStr,
                         priority = "Medium",
                         category = "General",
                         isCompleted = false
                     )
-                    Log.d("TasksFragment", "Adding new task: $taskText")
-                    viewModel.addTask(newTask)
+                    viewModel.addTask(newTask, requireContext())
                     Snackbar.make(requireView(), "Task added: $taskText", Snackbar.LENGTH_SHORT).show()
                 } else {
-                    // UPDATE EXISTING TASK
                     val updatedTask = existingTask.copy(
                         title = taskText,
-                        date = selectedDateInMillis,
+                        date = exactTimeInMillis,
                         time = selectedTimeStr
                     )
-                    Log.d("TasksFragment", "Updating task: $taskText")
-                    viewModel.deleteTask(existingTask)
-                    viewModel.addTask(updatedTask)
+                    viewModel.updateTask(updatedTask, requireContext())
                     Snackbar.make(requireView(), "Task updated", Snackbar.LENGTH_SHORT).show()
                 }
             }
@@ -292,17 +289,13 @@ class TasksFragment : Fragment() {
     }
 
     private fun isTomorrow(calendar: Calendar): Boolean {
-        val tomorrow = Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_YEAR, 1)
-        }
+        val tomorrow = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1) }
         return calendar.get(Calendar.YEAR) == tomorrow.get(Calendar.YEAR) &&
                 calendar.get(Calendar.DAY_OF_YEAR) == tomorrow.get(Calendar.DAY_OF_YEAR)
     }
 
     private fun isYesterday(calendar: Calendar): Boolean {
-        val yesterday = Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_YEAR, -1)
-        }
+        val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
         return calendar.get(Calendar.YEAR) == yesterday.get(Calendar.YEAR) &&
                 calendar.get(Calendar.DAY_OF_YEAR) == yesterday.get(Calendar.DAY_OF_YEAR)
     }
