@@ -14,16 +14,21 @@
         android:gravity="center_vertical"
         app:layout_constraintTop_toTopOf="parent">
 
-        <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Tasks"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_dark"/>
 
         <ImageView
             android:id="@+id/imgProfile"
             android:layout_width="28dp"
             android:layout_height="28dp"
             android:src="@drawable/ic_profile_placeholder"
-            app:tint="@color/accent_red"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:tint="@color/accent_red" />
     </LinearLayout>
 
     <View

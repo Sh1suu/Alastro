@@ -74,7 +74,7 @@ class DashboardFragment : Fragment() {
 
         // Update the header text (e.g. "February >")
         sharedViewModel.currentMonth.observe(viewLifecycleOwner) { newMonth ->
-            btnMonthSelector.text = "$newMonth >"
+            btnMonthSelector.text = "$newMonth"
         }
     }
 

@@ -4,7 +4,6 @@ import android.app.AlertDialog
 import android.graphics.Color
 import android.media.MediaPlayer
 import android.os.Bundle
-import android.os.CountDownTimer
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -15,6 +14,7 @@ import android.widget.NumberPicker
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
 import java.util.Locale
 
 class TimerFragment : Fragment() {
@@ -28,14 +28,8 @@ class TimerFragment : Fragment() {
     private lateinit var btnStartContainer: View
     private lateinit var btnReset: ImageView
 
-    // Logic Variables
-    private var countDownTimer: CountDownTimer? = null
-    private var isRunning = false
-    private var initialTimeInMillis: Long = 5 * 60 * 1000
-    private var timeLeftInMillis: Long = initialTimeInMillis
-    private var isWorkSession = true
-    private var currentCycle = 1
-    private var totalCycles = 4
+    // Get the shared Timer Brain
+    private lateinit var timerViewModel: TimerViewModel
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -54,16 +48,19 @@ class TimerFragment : Fragment() {
         btnReset = view.findViewById(R.id.btnReset)
         val imgProfile = view.findViewById<ImageView>(R.id.imgProfile)
 
-        // Initialize Display
-        updateCountDownText()
+        // Initialize ViewModel scoped to the entire Activity so it survives tab switching!
+        timerViewModel = ViewModelProvider(requireActivity()).get(TimerViewModel::class.java)
+
+        setupObservers()
 
         // Button Listeners
         btnStartContainer.setOnClickListener {
-            if (isRunning) pauseTimer() else startTimer()
+            timerViewModel.toggleTimer()
         }
 
         btnReset.setOnClickListener {
-            resetTimer()
+            timerViewModel.resetTimer()
+            Toast.makeText(context, "Timer Reset", Toast.LENGTH_SHORT).show()
         }
 
         view.findViewById<View>(R.id.btnEditTime).setOnClickListener {
@@ -85,78 +82,61 @@ class TimerFragment : Fragment() {
         return view
     }
 
-    private fun startTimer() {
-        countDownTimer = object : CountDownTimer(timeLeftInMillis, 1000) {
-            override fun onTick(millisUntilFinished: Long) {
-                timeLeftInMillis = millisUntilFinished
-                updateCountDownText()
-            }
+    private fun setupObservers() {
+        timerViewModel.timeLeftInMillis.observe(viewLifecycleOwner) { millis ->
+            updateCountDownText(millis)
+        }
 
-            override fun onFinish() {
+        timerViewModel.isRunning.observe(viewLifecycleOwner) { isRunning ->
+            if (isRunning) {
+                iconStart.setImageResource(android.R.drawable.ic_media_pause)
+            } else {
+                iconStart.setImageResource(android.R.drawable.ic_media_play)
+            }
+        }
+
+        timerViewModel.isWorkSession.observe(viewLifecycleOwner) { isWork ->
+            if (isWork) {
+                timerRootLayout.setBackgroundColor(Color.parseColor("#A61D1D")) // Red
+            } else {
+                timerRootLayout.setBackgroundColor(Color.parseColor("#2E7D32")) // Green
+            }
+        }
+
+        timerViewModel.totalCycles.observe(viewLifecycleOwner) { total ->
+            tvCycles.text = total.toString()
+        }
+
+        // Sync interval and initial preset texts perfectly when fragment reloads
+        tvIntervals.text = timerViewModel.intervalMinutes.toString()
+        val mins = timerViewModel.initialTimeInMillis / 60000
+        val secs = (timerViewModel.initialTimeInMillis % 60000) / 1000
+        tvPreset.text = String.format(Locale.getDefault(), "%02d:%02d", mins, secs)
+
+        timerViewModel.timerEvent.observe(viewLifecycleOwner) { event ->
+            event?.let {
                 playAlarmSound()
-                if (isWorkSession) {
-                    isWorkSession = false
-                    startNextSession()
-                } else {
-                    if (currentCycle < totalCycles) {
-                        currentCycle++
-                        isWorkSession = true
-                        startNextSession()
-                    } else {
+                when (it) {
+                    TimerViewModel.TimerEvent.WORK_FINISHED -> {
+                        Toast.makeText(context, "Break Time!", Toast.LENGTH_SHORT).show()
+                    }
+                    TimerViewModel.TimerEvent.BREAK_FINISHED -> {
+                        val cycle = timerViewModel.currentCycle.value ?: 1
+                        Toast.makeText(context, "Focus Time! Cycle $cycle", Toast.LENGTH_SHORT).show()
+                    }
+                    TimerViewModel.TimerEvent.ALL_CYCLES_COMPLETED -> {
                         Toast.makeText(context, "All cycles complete!", Toast.LENGTH_LONG).show()
-                        resetTimer()
                     }
                 }
+                timerViewModel.clearEvent() // Reset event so it doesn't trigger twice
             }
-        }.start()
-        isRunning = true
-        iconStart.setImageResource(android.R.drawable.ic_media_pause)
-    }
-
-    private fun pauseTimer() {
-        countDownTimer?.cancel()
-        isRunning = false
-        iconStart.setImageResource(android.R.drawable.ic_media_play)
-    }
-
-    private fun resetTimer() {
-        countDownTimer?.cancel()
-        isRunning = false
-        isWorkSession = true
-        currentCycle = 1
-        timeLeftInMillis = initialTimeInMillis
-        updateCountDownText()
-        iconStart.setImageResource(android.R.drawable.ic_media_play)
-        timerRootLayout.setBackgroundColor(Color.parseColor("#A61D1D"))
-        Toast.makeText(context, "Timer Reset", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun startNextSession() {
-        val timerMillis: Long
-        if (isWorkSession) {
-            timerMillis = initialTimeInMillis
-            timerRootLayout.setBackgroundColor(Color.parseColor("#A61D1D"))
-            Toast.makeText(context, "Focus Time! Cycle $currentCycle", Toast.LENGTH_SHORT).show()
-        } else {
-            val intervalMinutes = tvIntervals.text.toString().toIntOrNull() ?: 5
-            timerMillis = (intervalMinutes * 60 * 1000).toLong()
-            timerRootLayout.setBackgroundColor(Color.parseColor("#2E7D32"))
-            Toast.makeText(context, "Break Time!", Toast.LENGTH_SHORT).show()
         }
-        runTimer(timerMillis)
     }
 
-    private fun runTimer(timeInMillis: Long) {
-        countDownTimer?.cancel()
-        timeLeftInMillis = timeInMillis
-        updateCountDownText()
-        startTimer()
-    }
-
-    private fun updateCountDownText() {
-        val hours = (timeLeftInMillis / 1000) / 3600
-        val minutes = ((timeLeftInMillis / 1000) % 3600) / 60
-        val seconds = (timeLeftInMillis / 1000) % 60
+    private fun updateCountDownText(millis: Long) {
+        val hours = (millis / 1000) / 3600
+        val minutes = ((millis / 1000) % 3600) / 60
+        val seconds = (millis / 1000) % 60
         tvTimer.text = String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
     }
 
@@ -166,10 +146,8 @@ class TimerFragment : Fragment() {
         mediaPlayer?.start()
     }
 
-    // --- MAIN TIMER PRESET (Minutes & Seconds Wheels) ---
     private fun showTimePresetMenu() {
         val context = requireContext()
-
         val layout = LinearLayout(context)
         layout.orientation = LinearLayout.HORIZONTAL
         layout.gravity = Gravity.CENTER
@@ -178,13 +156,13 @@ class TimerFragment : Fragment() {
         val minPicker = NumberPicker(context).apply {
             minValue = 0
             maxValue = 99
-            value = (initialTimeInMillis / 60000).toInt()
+            value = (timerViewModel.initialTimeInMillis / 60000).toInt()
         }
 
         val secPicker = NumberPicker(context).apply {
             minValue = 0
             maxValue = 59
-            value = ((initialTimeInMillis % 60000) / 1000).toInt()
+            value = ((timerViewModel.initialTimeInMillis % 60000) / 1000).toInt()
         }
 
         val minLayout = LinearLayout(context).apply {
@@ -215,9 +193,9 @@ class TimerFragment : Fragment() {
                 val totalMillis = (mins * 60 * 1000L) + (secs * 1000L)
 
                 if (totalMillis > 0) {
-                    initialTimeInMillis = totalMillis
+                    timerViewModel.setInitialTime(totalMillis)
                     tvPreset.text = String.format(Locale.getDefault(), "%02d:%02d", mins, secs)
-                    resetTimer()
+                    timerViewModel.resetTimer()
                 } else {
                     Toast.makeText(context, "Timer must be greater than 0", Toast.LENGTH_SHORT).show()
                 }
@@ -226,22 +204,17 @@ class TimerFragment : Fragment() {
             .show()
     }
 
-    // --- CYCLES & INTERVALS PRESET (Scrollable Wheel) ---
     private fun showNumberInputDialog(title: String, target: TextView) {
         val context = requireContext()
-
         val picker = NumberPicker(context).apply {
             if (title == "Cycles") {
                 minValue = 1
                 maxValue = 20
-                // Pulls current number from text, defaults to 4
-                value = target.text.toString().toIntOrNull() ?: 4
+                value = timerViewModel.totalCycles.value ?: 4
             } else {
-                // Intervals (Break time in minutes)
                 minValue = 1
                 maxValue = 60
-                // Pulls current number from text, defaults to 5
-                value = target.text.toString().toIntOrNull() ?: 5
+                value = timerViewModel.intervalMinutes
             }
         }
 
@@ -259,9 +232,10 @@ class TimerFragment : Fragment() {
                 val selectedValue = picker.value
                 target.text = selectedValue.toString()
 
-                // Update the logic variable specifically for Cycles
                 if (title == "Cycles") {
-                    totalCycles = selectedValue
+                    timerViewModel.setTotalCycles(selectedValue)
+                } else {
+                    timerViewModel.setIntervalMinutes(selectedValue)
                 }
             }
             .setNegativeButton("Cancel", null)
@@ -271,5 +245,7 @@ class TimerFragment : Fragment() {
     override fun onDestroy() {
         super.onDestroy()
         mediaPlayer?.release()
+        // Notice we do NOT cancel the timer here anymore!
+        // The ViewModel keeps it alive.
     }
 }
